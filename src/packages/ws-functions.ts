@@ -1,12 +1,44 @@
 import { logger, logFunctionStart, logFunctionEnd, FunctionContext } from '../utils/logger';
 import { PackageResponse } from '../types';
 import WebSocket from 'ws';
+import { createServer } from 'http';
 
 /**
  * Simple ws function for WebSocket operations
  */
 export class WsFunctions {
   private readonly packageName = 'ws';
+
+  /**
+   * Find an available port starting from the given port
+   * @param startPort - Starting port to check
+   * @returns Promise<number> - Available port number
+   */
+  private async findAvailablePort(startPort: number): Promise<number> {
+    return new Promise((resolve, reject) => {
+      const server = createServer();
+      
+      const tryPort = (port: number) => {
+        server.listen(port, () => {
+          const actualPort = (server.address() as any)?.port || port;
+          server.close(() => {
+            resolve(actualPort);
+          });
+        });
+        
+        server.on('error', (err: any) => {
+          if (err.code === 'EADDRINUSE' && port < startPort + 100) {
+            // Try next port, max 100 attempts
+            tryPort(port + 1);
+          } else {
+            reject(err);
+          }
+        });
+      };
+      
+      tryPort(startPort);
+    });
+  }
 
   /**
    * Creates a simple WebSocket server and demonstrates basic functionality
@@ -24,8 +56,17 @@ export class WsFunctions {
     logFunctionStart(context);
 
     try {
-      // Create WebSocket server
-      const wss = new WebSocket.Server({ port });
+      // Find available port
+      const availablePort = await this.findAvailablePort(port);
+      if (availablePort !== port) {
+        logger.warn({ 
+          requestedPort: port, 
+          actualPort: availablePort 
+        }, 'Requested port was busy, using alternative port');
+      }
+
+      // Create WebSocket server with available port
+      const wss = new WebSocket.Server({ port: availablePort });
       
       let connectionCount = 0;
       const messages: Array<{timestamp: string, message: string, type: string}> = [];
@@ -126,15 +167,35 @@ export class WsFunctions {
         }
       }, 100);
 
-      // Close server after demo (to avoid keeping it running)
-      setTimeout(() => {
-        wss.close();
-      }, 1000);
+      // Properly close server after demo with cleanup
+      const serverCleanup = () => {
+        return new Promise<void>((resolve) => {
+          // Close all client connections first
+          wss.clients.forEach((client) => {
+            if (client.readyState === WebSocket.OPEN) {
+              client.terminate();
+            }
+          });
+          
+          // Then close the server
+          wss.close(() => {
+            logger.info({ port: availablePort }, 'WebSocket server closed successfully');
+            resolve();
+          });
+        });
+      };
+
+      // Schedule cleanup after demo
+      setTimeout(async () => {
+        await serverCleanup();
+      }, 2000); // Increased timeout for better cleanup
 
       const response: PackageResponse = {
         success: true,
         data: {
-          serverPort: port,
+          serverPort: availablePort,
+          requestedPort: port,
+          portChanged: availablePort !== port,
           serverCreated: true,
           connectionCount,
           messagesExchanged: messages.length,
@@ -151,17 +212,29 @@ export class WsFunctions {
       };
 
       logFunctionEnd(context, { 
-        port,
+        requestedPort: port,
+        actualPort: availablePort,
         serverCreated: true,
         connectionCount,
         messagesCount: messages.length
       });
       return response;
     } catch (error) {
+      const errorMessage = (error as Error).message;
+      const isPortError = errorMessage.includes('EADDRINUSE') || errorMessage.includes('address already in use');
+      
       const response: PackageResponse = {
         success: false,
-        error: (error as Error).message,
-        data: { port },
+        error: isPortError 
+          ? `Port ${port} is busy. Try using a different port or wait for the current process to release it.`
+          : errorMessage,
+        data: { 
+          requestedPort: port,
+          errorType: isPortError ? 'PORT_CONFLICT' : 'GENERAL_ERROR',
+          suggestion: isPortError 
+            ? 'Use a different WS_PORT environment variable or kill processes using port ' + port
+            : 'Check server logs for more details'
+        },
         timestamp: new Date().toISOString(),
         duration: Date.now() - context.startTime
       };
