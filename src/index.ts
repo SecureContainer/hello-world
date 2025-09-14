@@ -9,56 +9,6 @@ export * from './types';
 // Export logging utilities
 export * from './utils/logger';
 
-// Export package functions
-export { AxiosFunctions } from './packages/axios-functions';
-export { UuidFunctions } from './packages/uuid-functions';
-export { LodashFunctions } from './packages/lodash-functions';
-export { MomentFunctions } from './packages/moment-functions';
-export { BigFunctions } from './packages/big-functions';
-export { DotenvFunctions } from './packages/dotenv-functions';
-export { JsonStringifySafeFunctions } from './packages/json-stringify-safe-functions';
-export { LruCacheFunctions } from './packages/lru-cache-functions';
-export { Utf8ValidateFunctions } from './packages/utf8-validate-functions';
-export { JsYamlFunctions } from './packages/js-yaml-functions';
-export { PinoFunctions } from './packages/pino-functions';
-export { BufferutilFunctions } from './packages/bufferutil-functions';
-export { NanFunctions } from './packages/nan-functions';
-export { NodeYamlConfigFunctions } from './packages/node-yaml-config-functions';
-export { WsFunctions } from './packages/ws-functions';
-export { PinoDebugFunctions } from './packages/pino-debug-functions';
-export { RedisFunctions } from './packages/redis-functions';
-export { MongoDBFunctions } from './packages/mongodb-functions';
-export { PgFunctions } from './packages/pg-functions';
-export { SlonikFunctions } from './packages/slonik-functions';
-export { SlonikInterceptorQueryLoggingFunctions } from './packages/slonik-interceptor-query-logging-functions';
-export { SlonikSqlTagRawFunctions } from './packages/slonik-sql-tag-raw-functions';
-
-
-// Export examples (for development and testing)
-export { AxiosExample } from './examples/axios-example';
-export { UuidExample } from './examples/uuid-example';
-export { LodashExample } from './examples/lodash-example';
-export { MomentExample } from './examples/moment-example';
-export { BigExample } from './examples/big-example';
-export { DotenvExample } from './examples/dotenv-example';
-export { JsonStringifySafeExample } from './examples/json-stringify-safe-example';
-export { LruCacheExample } from './examples/lru-cache-example';
-export { Utf8ValidateExample } from './examples/utf8-validate-example';
-export { JsYamlExample } from './examples/js-yaml-example';
-export { PinoExample } from './examples/pino-example';
-export { BufferutilExample } from './examples/bufferutil-example';
-export { NanExample } from './examples/nan-example';
-export { NodeYamlConfigExample } from './examples/node-yaml-config-example';
-export { WsExample } from './examples/ws-example';
-export { PinoDebugExample } from './examples/pino-debug-example';
-export { RedisExample } from './examples/redis-example';
-export { MongoDBExample } from './examples/mongodb-example';
-export { PgExample } from './examples/pg-example';
-export { SlonikExample } from './examples/slonik-example';
-export { SlonikInterceptorQueryLoggingExample } from './examples/slonik-interceptor-query-logging-example';
-export { SlonikSqlTagRawExample } from './examples/slonik-sql-tag-raw-example';
-
-
 // Initialize and export logger for immediate use
 import { logger } from './utils/logger';
 export { logger };
@@ -94,8 +44,9 @@ export const app = new PackageTestApp();
  */
 async function main() {
   try {
-    // Load environment variables
-    require('dotenv').config({ path: 'demo.env' });
+    // Load environment variables (dynamic import for ES module compatibility)
+    const dotenv = await import('dotenv');
+    dotenv.config({ path: 'demo.env' });
     
     logger.info('🚀 Starting PackageTest Application Demo');
     logger.info('📦 Running all package demonstrations...');
@@ -110,7 +61,34 @@ async function main() {
   }
 }
 
-// Run main function if this file is executed directly
-if (require.main === module) {
-  main();
+/**
+ * Check if this file is being executed directly
+ * Works for both CommonJS and ES modules
+ */
+function isMainModule(): boolean {
+  // For CommonJS environments
+  if (typeof require !== 'undefined' && typeof module !== 'undefined') {
+    try {
+      return require.main === module;
+    } catch {
+      // If require.main or module is undefined, we're likely in ES module context
+      return false;
+    }
+  }
+  
+  // For ES modules or when require/module are not available
+  // We'll return false to avoid automatic execution in ES modules
+  // Users can call main() explicitly if needed
+  return false;
+}
+
+// Export main function for explicit calling
+export { main };
+
+// Run main function if this file is executed directly (CommonJS only)
+if (isMainModule()) {
+  main().catch((error) => {
+    logger.error({ error }, '❌ Failed to start application');
+    process.exit(1);
+  });
 }
