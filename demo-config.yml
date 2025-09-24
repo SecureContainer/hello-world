@@ -1,0 +1,47 @@
+# Sample Application Configuration
+app:
+  name: "PackageTest Application"
+  version: "1.0.0"
+  port: 3000
+  environment: development
+
+database:
+  host: localhost
+  port: 5432
+  name: packagetest_db
+  username: admin
+  password: secret123
+  ssl: false
+  pool:
+    min: 2
+    max: 10
+
+logging:
+  level: info
+  file: "./logs/app.log"
+  console: true
+  format: json
+
+cache:
+  enabled: true
+  ttl: 3600
+  provider: redis
+  redis:
+    host: localhost
+    port: 6379
+    db: 0
+
+features:
+  - authentication
+  - logging
+  - caching
+  - monitoring
+
+api:
+  baseUrl: "http://localhost:3000"
+  timeout: 30000
+  retries: 3
+  endpoints:
+    users: "/api/users"
+    posts: "/api/posts"
+    health: "/health"
