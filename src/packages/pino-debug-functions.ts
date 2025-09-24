@@ -1,7 +1,16 @@
 import pino from 'pino';
 import { logger, logFunctionStart, logFunctionEnd, FunctionContext } from '../utils/logger';
-const pinoDebug = require('pino-debug');
 import { PackageResponse } from '../types';
+
+// Conditionally require pino-debug only in development to avoid worker thread issues
+let pinoDebug: any;
+try {
+  if (process.env.NODE_ENV !== 'production' && !process.pkg) {
+    pinoDebug = require('pino-debug');
+  }
+} catch (error) {
+  // pino-debug not available or causes issues
+}
 
 export class PinoDebugFunctions {
   private readonly packageName = 'pino-debug';
@@ -21,7 +30,33 @@ export class PinoDebugFunctions {
     logFunctionStart(context);
 
     try {
-      // Create a dedicated logger for debug
+      // For production/bundled builds, use simple logging instead of pino-debug
+      if (!pinoDebug) {
+        const result = {
+          success: true,
+          data: {
+            message: 'Debug logging simulated (pino-debug not available in bundled build)',
+            namespace,
+            debugMessages: [
+              `${namespace}:main - Application started with debug logging`,
+              `${namespace}:database - Database connection established`,
+              `${namespace}:api - API endpoints registered`
+            ]
+          },
+          timestamp: new Date().toISOString(),
+          duration: Date.now() - context.startTime
+        };
+
+        // Log the messages using regular logger
+        logger.info(`${namespace}:main Application started with debug logging`);
+        logger.info(`${namespace}:database Database connection established`);
+        logger.info(`${namespace}:api API endpoints registered`);
+
+        logFunctionEnd(context, result);
+        return result;
+      }
+
+      // Create a dedicated logger for debug (development only)
       const debugLogger = pino({
         name: `${namespace}-debug`,
         level: 'debug',

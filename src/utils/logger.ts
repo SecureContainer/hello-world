@@ -26,12 +26,14 @@ export interface FunctionContext {
  */
 export const createLogger = (config: LoggerConfig = {}) => {
   // For bundled builds, avoid pino-pretty transport which requires worker threads
-  if (process.env.NODE_ENV === 'production' || (process as any).pkg) {
+  if (process.env.NODE_ENV === 'production' || process.pkg) {
     const logger = pino({
       name: config.name || 'PackageTest',
       level: config.level || 'info',
       // Simple JSON output for production bundles
-      timestamp: () => `,"time":"${new Date().toISOString()}"`
+      formatters: {
+        time: () => ({ time: new Date().toISOString() })
+      }
     });
     return logger;
   }
