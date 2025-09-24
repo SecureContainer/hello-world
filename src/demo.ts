@@ -129,7 +129,3 @@ async function runDemo() {
 // Export the runDemo function for use in other files
 export { runDemo };
 
-// Run the demo if this file is executed directly
-if (require.main === module) {
-  runDemo();
-}

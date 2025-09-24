@@ -25,6 +25,17 @@ export interface FunctionContext {
  * @returns Configured pino logger
  */
 export const createLogger = (config: LoggerConfig = {}) => {
+  // For bundled builds, avoid pino-pretty transport which requires worker threads
+  if (process.env.NODE_ENV === 'production' || (process as any).pkg) {
+    const logger = pino({
+      name: config.name || 'PackageTest',
+      level: config.level || 'info',
+      // Simple JSON output for production bundles
+      timestamp: () => `,"time":"${new Date().toISOString()}"`
+    });
+    return logger;
+  }
+
   const logger = pino({
     name: config.name || 'PackageTest',
     level: config.level || 'info',
@@ -48,7 +59,7 @@ export const createLogger = (config: LoggerConfig = {}) => {
  */
 export const logger = createLogger({
   level: process.env.LOG_LEVEL || 'info',
-  prettyPrint: false
+  prettyPrint: process.env.NODE_ENV !== 'production'
 });
 
 /**

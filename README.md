@@ -2,9 +2,9 @@
 
 A production-ready TypeScript Node.js project demonstrating 22 required npm packages with structured logging and type safety.
 
-**Note:** This branch contains applications that are **Not Bundled** into a single JavaScript file.
+**Note:** This branch contains applications that are **Bundled** into a single JavaScript file, but Without External Libraries
 
 ## Documentation
 
-- [📖 Installation & Usage](INSTALLATION.md)
+- [📖 Installation & Bundling Instructions](INSTALLATION.md)
 - [📋 Package Documentation & API Reference](INFO.md)
