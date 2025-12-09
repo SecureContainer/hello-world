@@ -1,3 +1,19 @@
+# Motivation for the Changes
+This application is meant to be containerized, with the logs and console outputs not available to the end user.
+To demonstrate that the application works normally, we provide Demo Inputs and Demo Outputs.
+
+## 📋 Output Demo
+To demonstrate that the application is working, we use MongoDB (cloud storage) to store live outputs of the application.
+
+Please use MongoDB Atlas web version [MongoDB Atlas Data Explorer](https://cloud.mongodb.com/v2#/org/690c86ffde72ff370f48d58c) to monitor the outputs
+
+## 📋 Inputs Demo
+To demonstrate that the application is capable of taking external inputs, we use HTTP GET library to pull BTCUSDT prices from [Binance Web API](https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT)
+
+These prices are saved to [MongoDB Atlas Data Explorer](https://cloud.mongodb.com/v2#/org/690c86ffde72ff370f48d58c) for monitoring of the connection to Binance.
+
+***Please contact us for login information to MongoDB Atlas Website***
+
 ## 📋 Information about 22 utilized packages
 
 ### AxiosFunctions Class
