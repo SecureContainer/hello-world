@@ -1,4 +1,4 @@
-# OVERVIEW
+# Overview
 This application is meant to be containerized, with the logs and console outputs not available to the end user.
 To demonstrate that the application works normally, we provide Demo Inputs and Demo Outputs.
 

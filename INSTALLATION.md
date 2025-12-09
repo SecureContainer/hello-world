@@ -1,103 +1,66 @@
-# About the Build Process:
+# Bundling Method Summary for Client Implementation
 
-● The build process for this version uses tsup for bundling, which is a zero-config TypeScript bundler built on top of esbuild.
-We bundle all app code into a single JavaScript file, but keep external dependencies outside of the bundle.
+## Overview
 
-# Bundling Process
+We use **esbuild** to bundle a TypeScript Node.js project into a single executable `.cjs` file with all dependencies included.
 
-## 1. tsup Configuration (`tsup.config.ts`)
+## Core Configuration
 
-```typescript
-export default defineConfig({
-  entry: { index: 'src/index.ts' },     // Single entry point
-  format: ['cjs', 'esm'],               // Output both CommonJS and ES modules
-  bundle: true,                         // Bundle all dependencies
-  minify: true,                         // Minify the output
-  treeshake: true,                      // Remove unused code
-  skipNodeModulesBundle: true,          // Don't bundle node_modules
+**File: `build.js`**
+
+```javascript
+const esbuild = require('esbuild');
+
+esbuild.build({
+  entryPoints: ['src/index.ts'],     // Main TypeScript entry file
+  bundle: true,                      // Bundle all dependencies
+  platform: 'node',                 // Target Node.js environment
+  target: 'node18',                  // Node.js version compatibility
+  format: 'cjs',                     // CommonJS output format
+  outfile: 'dist/index.cjs',         // Single output file
+  minify: true,                      // Minify for smaller size
+  
+  // Critical: List Node.js built-ins to exclude from bundling
+  external: [
+    'child_process', 'crypto', 'events', 'fs', 'http', 
+    'https', 'net', 'os', 'path', 'stream', 'url', 
+    'util', 'dns', 'tls', 'zlib', 'worker_threads'
+  ],
+  
+  packages: 'bundle',                // Bundle npm dependencies
+  resolveExtensions: ['.ts', '.js', '.json'],
+  
+  define: {
+    'process.env.NODE_ENV': '"production"'
+  },
+  
+  banner: {
+    js: '#!/usr/bin/env node'         // Make executable
+  }
 })
 ```
 
-## 2. Entry Point Strategy
+## Key Features
 
-- **Single entry**: `src/index.ts` exports everything the library needs
-- **Barrel exports**: Uses `export * from './packages/...'` to re-export all modules
-- **Centralized imports**: All dependencies are imported through the entry point
+1. **Single File Output**: All code + dependencies → one `.cjs` file
+2. **TypeScript Support**: Direct `.ts` to `.cjs` compilation
+3. **Dependency Bundling**: All `npm` packages included in output
+4. **Node.js Optimization**: Built-ins excluded, platform-specific
+5. **Production Ready**: Minified, optimized, executable
 
-## 3. Dependency Handling
+## Build Process
 
-The bundler:
-- **Bundles internal code**: All `src/` files are bundled together
-- **Excludes node_modules**: External dependencies remain as `require()` calls
-- **Tree shakes**: Removes unused exports automatically
+```bash
+# Install esbuild
+npm install --save-dev esbuild
 
-## 4. Output Generation
+# Run build
+node build.js
 
-Creates multiple formats from the same source:
-- `dist/index.js` - CommonJS (86KB) - for Node.js `require()`
-- `dist/index.mjs` - ES Module (76KB) - for `import` statements
-- `dist/index.d.ts` - TypeScript definitions (21KB)
-
----
-
-## Why This Approach Works
-
-### Advantages:
-
-1. **Single file distribution** - All your code bundled into one file
-2. **External dependencies preserved** - `node_modules` packages aren't embedded
-3. **Multiple format support** - Works with both `require()` and `import`
-4. **Automatic optimization** - Minification and tree-shaking built-in
-5. **Fast builds** - esbuild is extremely fast (builds in ~1.5 seconds)
-
-### How Dependencies Work:
-
-```javascript
-// Your bundled code becomes:
-const axios = require('axios');        // External dependency
-const uuid = require('uuid');          // External dependency
-// ... your bundled internal code ...   // All src/ files combined
+# Execute bundled output  
+node dist/index.cjs
 ```
 
-### Building and Running:
-
-  Prerequisites
-
-  No need to install tsup separately - it's already included as a dev dependency in package.json.
-
-  Step-by-Step Build Process
-
-  1. Install dependencies (if not already done):
-  ```
-  npm install
-```
-  2. Build the package:
-```
-  npm run build
-```
-  That's it! The build will:
-  - Clean the dist/ directory
-  - Bundle TypeScript code using tsup
-  - Generate both CommonJS and ES Module formats
-  - Create TypeScript declaration files
-  - Complete in ~1-2 seconds
-
-  Build Output
-
-  After running npm run build, you'll get:
-  ```
-  dist/
-  ├── index.js      # CommonJS bundle (86KB) - main distribution file
-  ├── index.mjs     # ES Module bundle (76KB)
-  ├── index.d.ts    # TypeScript definitions (21KB)
-  ├── index.d.mts   # ES Module TypeScript definitions
-  └── *.map files   # Source maps for debugging
-```
-
-  3. Run the package:
-  ```
-  node dist/index.js
-```
 ## 🔧 Configuration
 
 ### Environment Variables
@@ -114,6 +77,12 @@ PORT=3000
 
 ```
 
-## Summary
+## Why This Method
 
-This method is ideal for **library distribution** where you want to bundle your own code but let consumers manage external dependencies through `package.json`.
+- **esbuild**: Fastest bundler, excellent TypeScript support
+- **Single file**: Easy deployment, no node_modules needed
+- **CommonJS**: Maximum Node.js compatibility
+- **External built-ins**: Prevents bundling Node.js core modules
+- **Production optimized**: Minified, tree-shaken, efficient
+
+This approach creates a completely self-contained executable that runs anywhere Node.js is installed, without requiring package installation.
